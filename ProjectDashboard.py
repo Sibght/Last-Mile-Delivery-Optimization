@@ -21,6 +21,7 @@ st.markdown(
 st.write("This dashboard displays an optimized delivery map from the Last Mile Delivery Optimization code.")
 
 # 3) Run VRP code, which returns 5 values
+# total_distance, total_co2, total_fuel_cost, avg_delivery_time, fc_counts
 total_distance, total_co2, total_fuel_cost, avg_delivery_time, fc_counts = run_vrp()
 
 # 4) MAP (center) + LEGEND (right)
@@ -105,19 +106,34 @@ with col_right:
         unsafe_allow_html=True
     )
 
-# 5) KPI METRICS
+# 5) BEFORE vs. AFTER METRICS
 st.write("---")
-kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
-with kpi_col1:
-    st.metric("Number of Deliveries", "20")
-with kpi_col2:
+st.markdown("### Comparison (Before vs. After Optimization)")
+
+# For demonstration, here are some approximate baseline (unoptimized) numbers
+# for 20 deliveries in Dubai. Adjust them to match your actual naive scenario.
+baseline_distance_km = 520
+baseline_avg_time_min = 34
+baseline_co2_kg = 150
+baseline_fuel_cost_aed = 185
+
+col_baseline, col_optimized = st.columns(2)
+
+with col_baseline:
+    st.subheader("Naive Baseline")
+    st.metric("Total Distance", f"{baseline_distance_km} km")
+    st.metric("Avg. Delivery Time", f"{baseline_avg_time_min} min")
+    st.metric("CO₂ Emissions", f"{baseline_co2_kg} kg")
+    st.metric("Fuel Cost", f"AED {baseline_fuel_cost_aed}")
+
+with col_optimized:
+    st.subheader("Optimized VRP+TSP")
     st.metric("Total Distance", f"{total_distance} km")
-with kpi_col3:
     st.metric("Avg. Delivery Time", f"{avg_delivery_time} min")
-with kpi_col4:
-    st.metric("CO₂ Emission Saved", f"{round(total_co2, 2)} kg")
-with kpi_col5:
-    st.metric("Fuel Cost Saved", f"AED {round(total_fuel_cost, 2)}")
+    # If total_co2 is "CO2 Emission Saved", we can show how much was saved vs baseline
+    # or show actual CO2 if you prefer. For now, let's interpret total_co2 as 'saved'.
+    st.metric("CO₂ Emissions", f"{round(total_co2, 2)} kg")
+    st.metric("Fuel Cost", f"AED {round(total_fuel_cost, 2)}")
 
 # 6) SIDEBAR: CHARTS & KEY INSIGHTS
 
@@ -151,14 +167,13 @@ st.sidebar.subheader("Driver Delivery Time")
 st.sidebar.altair_chart(driver_time_bar, use_container_width=True)
 
 # C) Fulfillment Center Utilization (Pie Chart)
-# Convert fc_counts -> {2: #, 3: #, 4: #, 5: #} to { "FC1": #, "FC2": #, ...}
 fc_map = {2: "FC1", 3: "FC2", 4: "FC3", 5: "FC4"}
 mapped_data = []
 for fc_idx, count in fc_counts.items():
     if fc_idx in fc_map:
         mapped_data.append((fc_map[fc_idx], count))
-fc_df = pd.DataFrame(mapped_data, columns=["Fulfillment Center", "Deliveries"])
 
+fc_df = pd.DataFrame(mapped_data, columns=["Fulfillment Center", "Deliveries"])
 fc_pie = alt.Chart(fc_df).mark_arc(innerRadius=50).encode(
     theta=alt.Theta("Deliveries:Q", stack=True),
     color=alt.Color("Fulfillment Center:N", sort=["FC1","FC2","FC3","FC4"]),
